@@ -68,29 +68,29 @@ Inicia saludando al estudiante, preséntate brevemente y pregúntale por cuál c
 """
 
 if api_key:
-    # .strip() remueve espacios no deseados en la clave
+    # Limpiamos posibles espacios en blanco alrededor de la API Key
     client = genai.Client(api_key=api_key.strip())
 
-    # Inicializar historial de chat
+    # Inicializar historial de mensajes
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Mostrar mensajes previos
+    # Desplegar historial
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Entrada de texto del usuario
+    # Entrada de usuario
     if prompt := st.chat_input("Escribe tu respuesta, duda o inicio de lección..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Respuesta de la IA
+        # Respuesta del tutor
         with st.chat_message("assistant"):
             try:
                 response = client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-2.0-flash',
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=SYSTEM_PROMPT,
@@ -101,8 +101,8 @@ if api_key:
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 if "429" in str(e) or "Quota" in str(e):
-                    st.warning("⏳ Alcanzaste el límite de peticiones por minuto. Espera 10-15 segundos y envía tu mensaje de nuevo.")
+                    st.warning("⏳ Alcanzaste el límite de velocidad por minuto de la capa gratuita. Espera 10 segundos y vuelve a enviar el mensaje.")
                 else:
-                    st.error(f"⚠️ Error de conexión con la API de Gemini: {e}")
+                    st.error(f"⚠️ Error de conexión: {e}")
 else:
     st.info("Por favor, ingresa tu API Key para comenzar.")
