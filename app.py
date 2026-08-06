@@ -32,7 +32,8 @@ REGLAS DE INTERACCIÓN:
 """
 
 if api_key:
-    client = genai.Client(api_key=api_key)
+    # .strip() elimina espacios en blanco accidentales al inicio o final de la clave
+    client = genai.Client(api_key=api_key.strip())
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -47,15 +48,19 @@ if api_key:
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            response = client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    temperature=0.3,
+            try:
+                response = client.models.generate_content(
+                    model='gemini-2.0-flash',
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        temperature=0.3,
+                    )
                 )
-            )
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                st.error(f"⚠️ Error al conectar con la API de Gemini: {e}")
+                st.info("Verifica que tu API Key sea correcta y no tenga restricciones en Google AI Studio.")
 else:
     st.info("Por favor, ingresa tu API Key para comenzar.")
