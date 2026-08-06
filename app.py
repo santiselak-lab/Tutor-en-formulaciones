@@ -68,29 +68,25 @@ Inicia saludando al estudiante, preséntate brevemente y pregúntale por cuál c
 """
 
 if api_key:
-    # Limpiamos posibles espacios en blanco alrededor de la API Key
     client = genai.Client(api_key=api_key.strip())
 
-    # Inicializar historial de mensajes
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Desplegar historial
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Entrada de usuario
     if prompt := st.chat_input("Escribe tu respuesta, duda o inicio de lección..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Respuesta del tutor
         with st.chat_message("assistant"):
+            # Intento 1: Usar gemini-2.0-flash-lite (alto límite de cuota)
             try:
                 response = client.models.generate_content(
-                    model='gemini-2.0-flash',
+                    model='gemini-2.0-flash-lite',
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         system_instruction=SYSTEM_PROMPT,
@@ -99,10 +95,22 @@ if api_key:
                 )
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
+
             except Exception as e:
-                if "429" in str(e) or "Quota" in str(e):
-                    st.warning("⏳ Alcanzaste el límite de velocidad por minuto de la capa gratuita. Espera 10 segundos y vuelve a enviar el mensaje.")
-                else:
-                    st.error(f"⚠️ Error de conexión: {e}")
+                # Intento 2: Fallback a gemini-2.0-flash si el anterior falla
+                try:
+                    response = client.models.generate_content(
+                        model='gemini-2.0-flash',
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            system_instruction=SYSTEM_PROMPT,
+                            temperature=0.3,
+                        )
+                    )
+                    st.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                except Exception as err:
+                    st.error("⚠️ La cuota gratuita de la API Key se ha agotado en ambos modelos.")
+                    st.info("💡 Solución rápida: En Google AI Studio, crea un proyecto nuevo para generar una API Key limpia sin restricciones de consumo previo.")
 else:
     st.info("Por favor, ingresa tu API Key para comenzar.")
